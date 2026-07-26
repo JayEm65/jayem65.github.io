@@ -44,22 +44,43 @@ h1 {
 }
 
 .gallery {
-    display: flex;
-    flex-direction: column;
-    gap: 35px;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 12px;
 }
 
-.gallery img {
-    width: 100%;
-    height: auto;
-    display: block;
+.gallery-item {
+    overflow: hidden;
+    border: none;
+    background: transparent;
     cursor: pointer;
+}
+
+.gallery-item img {
+    width: 100%;
+    height: 120px;
+    object-fit: cover;
+    display: block;
+    border-radius: 6px;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.gallery img:hover {
-    transform: scale(1.01);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+.gallery-item:hover img {
+    transform: scale(1.02);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+}
+
+@media (max-width: 700px) {
+    .gallery {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 480px) {
+    .gallery {
+        grid-template-columns: 1fr;
+    }
 }
 
 .caption {
@@ -446,15 +467,7 @@ Marc
 
 </div>
 
-<div class="gallery">
-
-<img src="photos/11--1230mar2988.jpg" alt="Memory 1">
-
-<img src="photos/13--1230mar2988.jpg" alt="Memory 2">
-
-<img src="photos/15--1230mar2989.jpg" alt="Memory 3">
-
-</div>
+<div class="gallery" id="gallery"></div>
 
 <div id="lightbox" class="lightbox" role="dialog" aria-modal="true" aria-label="Photo viewer">
     <div class="lightbox-inner">
@@ -478,14 +491,70 @@ A collection of memories
 
 
 <script>
+const imageFiles = [
+    'photos/11--1230mar2988.jpg',
+    'photos/13--1230mar2988.jpg',
+    'photos/15--1230mar2989.jpg',
+    'photos/17--1230mar2989.jpg',
+    'photos/18--1230mar2989.jpg',
+    'photos/2--1230mar2988.jpg',
+    'photos/21--1230mar2989.jpg',
+    'photos/25--1230mar2988.jpg',
+    'photos/25--1230mar2989.jpg',
+    'photos/27--1230mar2989.jpg',
+    'photos/28--1230mar2989.jpg',
+    'photos/31--1230mar2988.jpg',
+    'photos/31--1230mar2989.jpg',
+    'photos/32--1230mar2989.jpg',
+    'photos/33--1230mar2989.jpg',
+    'photos/36--1230mar2989.jpg',
+    'photos/38--1230mar2989.jpg',
+    'photos/4--1230mar2988.jpg',
+    'photos/9--1230mar2988.jpg',
+    'photos/R1-00965-0011.jpg',
+    'photos/R1-00965-0014.jpg',
+    'photos/R1-00965-0016.jpg',
+    'photos/R1-00965-0019.jpg',
+    'photos/R1-00965-0022.jpg',
+    'photos/R1-00965-0023.jpg',
+    'photos/R1-00965-0026.jpg',
+    'photos/R1-00965-0033.jpg',
+    'photos/R2_06_25 (1).jpg',
+    'photos/R2_06_25 (2).jpg',
+    'photos/R2_06_25 (3).jpg',
+    'photos/R2_06_25 (4).jpg',
+    'photos/R2_06_25 (5).jpg',
+    'photos/R2_06_25 (6).jpg',
+    'photos/R2_06_25 (7).jpg',
+    'photos/R2_06_25 (8).jpg'
+];
 
-const galleryImages = Array.from(document.querySelectorAll('.gallery img'));
+const gallery = document.getElementById('gallery');
 const lightbox = document.getElementById('lightbox');
 const lightboxImage = document.getElementById('lightbox-image');
 const closeButton = document.querySelector('.lightbox-close');
 const prevButton = document.querySelector('.lightbox-nav.prev');
 const nextButton = document.querySelector('.lightbox-nav.next');
 let currentIndex = 0;
+let galleryImages = [];
+
+function buildGallery() {
+    gallery.innerHTML = '';
+
+    imageFiles.forEach((src, index) => {
+        const item = document.createElement('div');
+        item.className = 'gallery-item';
+
+        const img = document.createElement('img');
+        img.src = src;
+        img.alt = `Memory ${index + 1}`;
+        img.addEventListener('click', () => openLightbox(index));
+
+        item.appendChild(img);
+        gallery.appendChild(item);
+        galleryImages.push(img);
+    });
+}
 
 function openLightbox(index) {
     currentIndex = index;
@@ -512,9 +581,7 @@ function showPreviousImage() {
     lightboxImage.alt = galleryImages[currentIndex].alt;
 }
 
-galleryImages.forEach((img, index) => {
-    img.addEventListener('click', () => openLightbox(index));
-});
+buildGallery();
 
 closeButton.addEventListener('click', closeLightbox);
 prevButton.addEventListener('click', showPreviousImage);
