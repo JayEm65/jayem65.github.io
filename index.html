@@ -568,34 +568,23 @@ let analyticsPanel = null;
 let lastTrackedOpenPhoto = null;
 const showAnalytics = new URLSearchParams(window.location.search).get('analytics') === '1';
 const analyticsApi = 'https://api.countapi.xyz/hit/jayem65/letter-photos';
-
-function normalizeStats(stats) {
-    const normalized = {};
-
-    Object.entries(stats || {}).forEach(([name, value]) => {
-        if (typeof value === 'number') {
-            normalized[name] = { opens: value, saves: 0 };
-        } else if (value && typeof value === 'object') {
-            normalized[name] = {
-                opens: value.opens || 0,
-                saves: value.saves || 0
-            };
-        }
-    });
-
-    return normalized;
-}
+let analyticsTotals = { opens: 0, saves: 0 };
 
 async function loadAnalytics() {
     try {
-        const response = await fetch(analyticsApi, { method: 'GET' });
+        const response = await fetch(analyticsApi);
         if (!response.ok) {
             throw new Error(`Analytics request failed: ${response.status}`);
         }
-        return normalizeStats(await response.json());
+        const data = await response.json();
+        analyticsTotals = {
+            opens: data.value || 0,
+            saves: 0
+        };
+        return analyticsTotals;
     } catch (error) {
         console.warn('Analytics unavailable.', error);
-        return {};
+        return analyticsTotals;
     }
 }
 
@@ -609,17 +598,18 @@ function renderAnalyticsError(message) {
 
 async function postAnalyticsEvent(photoName, action) {
     try {
-        const response = await fetch(analyticsApi, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ photo: photoName, action })
-        });
+        const response = await fetch(analyticsApi);
 
         if (!response.ok) {
             throw new Error(`Analytics update failed: ${response.status}`);
         }
 
-        return await response.json();
+        const data = await response.json();
+        analyticsTotals = {
+            opens: action === 'open' ? analyticsTotals.opens + 1 : analyticsTotals.opens,
+            saves: action === 'save' ? analyticsTotals.saves + 1 : analyticsTotals.saves
+        };
+        return data;
     } catch (error) {
         console.warn('Analytics storage unavailable.', error);
         return null;
@@ -632,14 +622,10 @@ async function updateAnalyticsPanel() {
     }
 
     const stats = await loadAnalytics();
-    const entries = Object.entries(stats).sort((a, b) => (b[1].opens + b[1].saves) - (a[1].opens + a[1].saves));
 
-    if (!entries.length) {
-        analyticsPanel.innerHTML = '<strong>Photo counts</strong><br>No opens or saves yet.';
-        return;
-    }
-
-    analyticsPanel.innerHTML = '<strong>Photo counts</strong><br>' + entries.map(([name, counts]) => `${name}: opens ${counts.opens}, saves ${counts.saves}`).join('<br>');
+    analyticsPanel.innerHTML = '<strong>Photo counts</strong><br>' +
+        `opens: ${stats.opens}<br>` +
+        `saves: ${stats.saves}`;
 
     const resetButton = document.createElement('button');
     resetButton.type = 'button';
@@ -660,20 +646,7 @@ function createAnalyticsPanel() {
 }
 
 async function resetAnalytics() {
-    try {
-        const response = await fetch(analyticsApi, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'reset' })
-        });
-
-        if (!response.ok) {
-            throw new Error(`Reset failed: ${response.status}`);
-        }
-    } catch (error) {
-        console.warn('Analytics reset unavailable.', error);
-    }
-
+    analyticsTotals = { opens: 0, saves: 0 };
     updateAnalyticsPanel();
 }
 
