@@ -567,19 +567,20 @@ let galleryImages = [];
 let analyticsPanel = null;
 let lastTrackedOpenPhoto = null;
 const showAnalytics = new URLSearchParams(window.location.search).get('analytics') === '1';
-const analyticsApi = 'https://api.countapi.xyz/hit/jayem65/letter-photos';
+const analyticsApi = '/.netlify/functions/analytics';
 let analyticsTotals = { opens: 0, saves: 0 };
 
 async function loadAnalytics() {
     try {
-        const response = await fetch(analyticsApi);
+        const response = await fetch(analyticsApi, { method: 'GET' });
         if (!response.ok) {
             throw new Error(`Analytics request failed: ${response.status}`);
         }
         const data = await response.json();
+        const photoData = data['all'] || { opens: 0, saves: 0 };
         analyticsTotals = {
-            opens: data.value || 0,
-            saves: 0
+            opens: photoData.opens || 0,
+            saves: photoData.saves || 0
         };
         return analyticsTotals;
     } catch (error) {
@@ -598,7 +599,11 @@ function renderAnalyticsError(message) {
 
 async function postAnalyticsEvent(photoName, action) {
     try {
-        const response = await fetch(analyticsApi);
+        const response = await fetch(analyticsApi, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ photo: photoName, action })
+        });
 
         if (!response.ok) {
             throw new Error(`Analytics update failed: ${response.status}`);
