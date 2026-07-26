@@ -131,43 +131,38 @@ hr.divider {
 .lightbox-close {
     position: absolute;
     border: none;
-    background: rgba(255,255,255,0.16);
+    background: transparent;
     color: white;
     cursor: pointer;
     font-family: "Courier New", Courier, monospace;
-    backdrop-filter: blur(2px);
+    font-size: 20px;
+    padding: 0;
+    line-height: 1;
+    opacity: 0.9;
 }
 
 .lightbox-nav {
     top: 50%;
     transform: translateY(-50%);
-    width: 42px;
-    height: 42px;
-    border-radius: 50%;
-    font-size: 22px;
-    line-height: 1;
 }
 
 .lightbox-nav.prev {
-    left: 14px;
+    left: -6px;
 }
 
 .lightbox-nav.next {
-    right: 14px;
+    right: -6px;
 }
 
 .lightbox-close {
-    top: 12px;
-    right: 12px;
-    width: 38px;
-    height: 38px;
-    border-radius: 50%;
-    font-size: 20px;
+    top: 6px;
+    right: 6px;
+    font-size: 22px;
 }
 
 .lightbox-nav:hover,
 .lightbox-close:hover {
-    background: rgba(255,255,255,0.24);
+    opacity: 1;
 }
 
 input {
