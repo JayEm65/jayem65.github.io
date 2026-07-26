@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
@@ -38,13 +40,13 @@ h1 {
 .divider {
     margin: 60px 0;
     text-align: center;
-    font-size: 20px;
+    font-size: 22px;
 }
 
 .gallery {
     display: flex;
     flex-direction: column;
-    gap: 30px;
+    gap: 35px;
 }
 
 .gallery img {
@@ -56,8 +58,41 @@ h1 {
 .caption {
     font-size: 13px;
     text-align: center;
-    color: #666;
-    margin-top: -20px;
+    color: #777;
+}
+
+input {
+    display: block;
+    width: 250px;
+    max-width: 90%;
+    margin: 20px auto;
+    padding: 12px;
+    font-family: "Courier New", Courier, monospace;
+    font-size: 16px;
+    text-align: center;
+    border: 1px solid #999;
+    background: white;
+}
+
+button {
+    display: block;
+    margin: 0 auto;
+    padding: 12px 25px;
+    font-family: "Courier New", Courier, monospace;
+    font-size: 16px;
+    cursor: pointer;
+    border: 1px solid #555;
+    background: transparent;
+}
+
+button:hover {
+    background: #eee;
+}
+
+#error {
+    text-align: center;
+    color: #888;
+    margin-top: 20px;
 }
 
 footer {
@@ -74,31 +109,72 @@ footer {
 
 <body>
 
-<div class="container">
+
+<!-- PASSWORD SCREEN -->
+
+<div id="lockscreen" class="container">
+
+<h1>A private letter</h1>
+
+<p style="text-align:center;">
+Please enter the code to continue.
+</p>
+
+
+<input 
+id="password" 
+type="password" 
+placeholder="Enter code"
+>
+
+
+<button onclick="unlock()">
+Open
+</button>
+
+
+<p id="error"></p>
+
+
+</div>
+
+
+
+<!-- HIDDEN CONTENT -->
+
+<div id="content" class="container" style="display:none;">
+
 
 <h1>For Eleftheria</h1>
 
 
+
 <div class="letter">
+
 
 Dear Eleftheria,
 
+
 Paste your letter here.
 
-You can write normally.
-The spacing will stay the same.
 
-For example:
+Keep the spacing exactly how you want it.
+
 
 Some words can stand alone.
 
+
 Some memories deserve their own space.
+
 
 Your ending goes here.
 
+
 Marc
 
+
 </div>
+
 
 
 <div class="divider">
@@ -106,23 +182,72 @@ Marc
 </div>
 
 
+
 <div class="gallery">
+
 
 <img src="images/photo1.jpg" alt="Memory 1">
 
+
 <img src="images/photo2.jpg" alt="Memory 2">
+
 
 <img src="images/photo3.jpg" alt="Memory 3">
 
+
 </div>
+
 
 
 <footer>
+
 A collection of memories
+
 </footer>
+
 
 
 </div>
 
+
+
+<script>
+
+
+function unlock() {
+
+
+    const entered = document.getElementById("password").value;
+
+
+    const correct = "YOURCODEHERE";
+
+
+    if (entered === correct) {
+
+
+        document.getElementById("lockscreen").style.display = "none";
+
+        document.getElementById("content").style.display = "block";
+
+
+    } else {
+
+
+        document.getElementById("error").innerHTML =
+        "Wrong code.";
+
+
+    }
+
+
+}
+
+
+</script>
+
+
+
 </body>
+
 </html>
