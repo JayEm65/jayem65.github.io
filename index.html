@@ -53,12 +53,92 @@ h1 {
     width: 100%;
     height: auto;
     display: block;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.gallery img:hover {
+    transform: scale(1.01);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
 }
 
 .caption {
     font-size: 13px;
     text-align: center;
     color: #777;
+}
+
+.lightbox {
+    position: fixed;
+    inset: 0;
+    background: rgba(10, 10, 10, 0.88);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 24px;
+}
+
+.lightbox.open {
+    display: flex;
+}
+
+.lightbox-inner {
+    position: relative;
+    width: min(100%, 1100px);
+    height: min(100%, 90vh);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.lightbox img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    border-radius: 8px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+}
+
+.lightbox-nav,
+.lightbox-close {
+    position: absolute;
+    border: 1px solid rgba(255,255,255,0.4);
+    background: rgba(255,255,255,0.12);
+    color: white;
+    cursor: pointer;
+    font-family: "Courier New", Courier, monospace;
+}
+
+.lightbox-nav {
+    top: 50%;
+    transform: translateY(-50%);
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    font-size: 24px;
+}
+
+.lightbox-nav.prev {
+    left: 16px;
+}
+
+.lightbox-nav.next {
+    right: 16px;
+}
+
+.lightbox-close {
+    top: 14px;
+    right: 14px;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    font-size: 22px;
+}
+
+.lightbox-nav:hover,
+.lightbox-close:hover {
+    background: rgba(255,255,255,0.24);
 }
 
 input {
@@ -364,27 +444,26 @@ Toujours,
 
 Marc
 
-
-
-
-
 </div>
 
 <div class="gallery">
 
+<img src="photos/11--1230mar2988.jpg" alt="Memory 1">
 
-<img src="images/photo1.jpg" alt="Memory 1">
+<img src="photos/13--1230mar2988.jpg" alt="Memory 2">
 
-
-<img src="images/photo2.jpg" alt="Memory 2">
-
-
-<img src="images/photo3.jpg" alt="Memory 3">
-
+<img src="photos/15--1230mar2989.jpg" alt="Memory 3">
 
 </div>
 
-
+<div id="lightbox" class="lightbox" role="dialog" aria-modal="true" aria-label="Photo viewer">
+    <div class="lightbox-inner">
+        <button class="lightbox-close" type="button" aria-label="Close photo">×</button>
+        <button class="lightbox-nav prev" type="button" aria-label="Previous photo">‹</button>
+        <img id="lightbox-image" src="" alt="">
+        <button class="lightbox-nav next" type="button" aria-label="Next photo">›</button>
+    </div>
+</div>
 
 <footer>
 
@@ -400,6 +479,66 @@ A collection of memories
 
 <script>
 
+const galleryImages = Array.from(document.querySelectorAll('.gallery img'));
+const lightbox = document.getElementById('lightbox');
+const lightboxImage = document.getElementById('lightbox-image');
+const closeButton = document.querySelector('.lightbox-close');
+const prevButton = document.querySelector('.lightbox-nav.prev');
+const nextButton = document.querySelector('.lightbox-nav.next');
+let currentIndex = 0;
+
+function openLightbox(index) {
+    currentIndex = index;
+    lightboxImage.src = galleryImages[currentIndex].src;
+    lightboxImage.alt = galleryImages[currentIndex].alt;
+    lightbox.classList.add('open');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeLightbox() {
+    lightbox.classList.remove('open');
+    document.body.style.overflow = '';
+}
+
+function showNextImage() {
+    currentIndex = (currentIndex + 1) % galleryImages.length;
+    lightboxImage.src = galleryImages[currentIndex].src;
+    lightboxImage.alt = galleryImages[currentIndex].alt;
+}
+
+function showPreviousImage() {
+    currentIndex = (currentIndex - 1 + galleryImages.length) % galleryImages.length;
+    lightboxImage.src = galleryImages[currentIndex].src;
+    lightboxImage.alt = galleryImages[currentIndex].alt;
+}
+
+galleryImages.forEach((img, index) => {
+    img.addEventListener('click', () => openLightbox(index));
+});
+
+closeButton.addEventListener('click', closeLightbox);
+prevButton.addEventListener('click', showPreviousImage);
+nextButton.addEventListener('click', showNextImage);
+
+lightbox.addEventListener('click', (event) => {
+    if (event.target === lightbox) {
+        closeLightbox();
+    }
+});
+
+document.addEventListener('keydown', (event) => {
+    if (!lightbox.classList.contains('open')) {
+        return;
+    }
+
+    if (event.key === 'Escape') {
+        closeLightbox();
+    } else if (event.key === 'ArrowRight') {
+        showNextImage();
+    } else if (event.key === 'ArrowLeft') {
+        showPreviousImage();
+    }
+});
 
 function unlock() {
 
