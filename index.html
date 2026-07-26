@@ -115,50 +115,54 @@ hr.divider {
     display: flex;
     align-items: center;
     justify-content: center;
+    padding: 24px;
+    box-sizing: border-box;
 }
 
 .lightbox img {
     max-width: 100%;
     max-height: 100%;
     object-fit: contain;
-    border-radius: 8px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+    border-radius: 6px;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.3);
 }
 
 .lightbox-nav,
 .lightbox-close {
     position: absolute;
-    border: 1px solid rgba(255,255,255,0.4);
-    background: rgba(255,255,255,0.12);
+    border: none;
+    background: rgba(255,255,255,0.16);
     color: white;
     cursor: pointer;
     font-family: "Courier New", Courier, monospace;
+    backdrop-filter: blur(2px);
 }
 
 .lightbox-nav {
     top: 50%;
     transform: translateY(-50%);
-    width: 48px;
-    height: 48px;
+    width: 42px;
+    height: 42px;
     border-radius: 50%;
-    font-size: 24px;
+    font-size: 22px;
+    line-height: 1;
 }
 
 .lightbox-nav.prev {
-    left: 16px;
+    left: 14px;
 }
 
 .lightbox-nav.next {
-    right: 16px;
+    right: 14px;
 }
 
 .lightbox-close {
-    top: 14px;
-    right: 14px;
-    width: 44px;
-    height: 44px;
+    top: 12px;
+    right: 12px;
+    width: 38px;
+    height: 38px;
     border-radius: 50%;
-    font-size: 22px;
+    font-size: 20px;
 }
 
 .lightbox-nav:hover,
@@ -205,40 +209,6 @@ footer {
     margin: 70px 0 30px;
     font-size: 13px;
     color: #777;
-}
-
-.analytics-panel {
-    display: none;
-    position: fixed;
-    right: 14px;
-    bottom: 14px;
-    max-width: 280px;
-    padding: 12px 14px;
-    background: rgba(255, 255, 255, 0.95);
-    border: 1px solid #d8cfc2;
-    border-radius: 8px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-    font-size: 12px;
-    color: #333;
-    line-height: 1.5;
-    z-index: 1200;
-}
-
-.analytics-panel.visible {
-    display: block;
-}
-
-.analytics-panel button {
-    margin-top: 8px;
-    padding: 6px 10px;
-    font-size: 11px;
-    border: 1px solid #c7bcae;
-    background: #f4eee5;
-    cursor: pointer;
-}
-
-.analytics-panel button:hover {
-    background: #ece3d7;
 }
 
 </style>
@@ -564,114 +534,6 @@ const prevButton = document.querySelector('.lightbox-nav.prev');
 const nextButton = document.querySelector('.lightbox-nav.next');
 let currentIndex = 0;
 let galleryImages = [];
-let analyticsPanel = null;
-let lastTrackedOpenPhoto = null;
-const showAnalytics = new URLSearchParams(window.location.search).get('analytics') === '1';
-const analyticsApi = '/.netlify/functions/analytics';
-let analyticsTotals = { opens: 0, saves: 0 };
-
-async function loadAnalytics() {
-    try {
-        const response = await fetch(analyticsApi, { method: 'GET' });
-        if (!response.ok) {
-            throw new Error(`Analytics request failed: ${response.status}`);
-        }
-        const data = await response.json();
-        const photoData = data['all'] || { opens: 0, saves: 0 };
-        analyticsTotals = {
-            opens: photoData.opens || 0,
-            saves: photoData.saves || 0
-        };
-        return analyticsTotals;
-    } catch (error) {
-        console.warn('Analytics unavailable.', error);
-        return analyticsTotals;
-    }
-}
-
-function renderAnalyticsError(message) {
-    if (!analyticsPanel) {
-        return;
-    }
-
-    analyticsPanel.innerHTML = `<strong>Photo counts</strong><br>${message}`;
-}
-
-async function postAnalyticsEvent(photoName, action) {
-    try {
-        const response = await fetch(analyticsApi, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ photo: photoName, action })
-        });
-
-        if (!response.ok) {
-            throw new Error(`Analytics update failed: ${response.status}`);
-        }
-
-        const data = await response.json();
-        analyticsTotals = {
-            opens: action === 'open' ? analyticsTotals.opens + 1 : analyticsTotals.opens,
-            saves: action === 'save' ? analyticsTotals.saves + 1 : analyticsTotals.saves
-        };
-        return data;
-    } catch (error) {
-        console.warn('Analytics storage unavailable.', error);
-        return null;
-    }
-}
-
-async function updateAnalyticsPanel() {
-    if (!analyticsPanel) {
-        return;
-    }
-
-    const stats = await loadAnalytics();
-
-    analyticsPanel.innerHTML = '<strong>Photo counts</strong><br>' +
-        `opens: ${stats.opens}<br>` +
-        `saves: ${stats.saves}`;
-
-    const resetButton = document.createElement('button');
-    resetButton.type = 'button';
-    resetButton.textContent = 'Reset counts';
-    resetButton.addEventListener('click', resetAnalytics);
-    analyticsPanel.appendChild(resetButton);
-}
-
-function createAnalyticsPanel() {
-    if (!showAnalytics) {
-        return;
-    }
-
-    analyticsPanel = document.createElement('div');
-    analyticsPanel.className = 'analytics-panel visible';
-    document.body.appendChild(analyticsPanel);
-    updateAnalyticsPanel();
-}
-
-async function resetAnalytics() {
-    analyticsTotals = { opens: 0, saves: 0 };
-    updateAnalyticsPanel();
-}
-
-async function recordThumbnailSave(index) {
-    const photoName = imageFiles[index].split('/').pop();
-    await postAnalyticsEvent(photoName, 'save');
-    updateAnalyticsPanel();
-}
-
-async function recordPhotoOpen(index) {
-    const photoName = imageFiles[index].split('/').pop();
-
-    if (lastTrackedOpenPhoto === photoName) {
-        return;
-    }
-
-    lastTrackedOpenPhoto = photoName;
-    await postAnalyticsEvent(photoName, 'open');
-    updateAnalyticsPanel();
-}
 
 function buildGallery() {
     gallery.innerHTML = '';
@@ -684,7 +546,6 @@ function buildGallery() {
         img.src = src;
         img.alt = `Memory ${index + 1}`;
         img.addEventListener('click', () => {
-            recordThumbnailSave(index);
             openLightbox(index);
         });
 
@@ -700,7 +561,6 @@ function openLightbox(index) {
     lightboxImage.alt = galleryImages[currentIndex].alt;
     lightbox.classList.add('open');
     document.body.style.overflow = 'hidden';
-    recordPhotoOpen(index);
 }
 
 function closeLightbox() {
@@ -712,17 +572,14 @@ function showNextImage() {
     currentIndex = (currentIndex + 1) % galleryImages.length;
     lightboxImage.src = galleryImages[currentIndex].src;
     lightboxImage.alt = galleryImages[currentIndex].alt;
-    recordPhotoOpen(currentIndex);
 }
 
 function showPreviousImage() {
     currentIndex = (currentIndex - 1 + galleryImages.length) % galleryImages.length;
     lightboxImage.src = galleryImages[currentIndex].src;
     lightboxImage.alt = galleryImages[currentIndex].alt;
-    recordPhotoOpen(currentIndex);
 }
 
-createAnalyticsPanel();
 buildGallery();
 
 closeButton.addEventListener('click', closeLightbox);
