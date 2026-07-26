@@ -565,25 +565,9 @@ const nextButton = document.querySelector('.lightbox-nav.next');
 let currentIndex = 0;
 let galleryImages = [];
 let analyticsPanel = null;
+let lastTrackedOpenPhoto = null;
 const showAnalytics = new URLSearchParams(window.location.search).get('analytics') === '1';
 const analyticsApi = `${window.location.origin}/api/analytics`;
-const analyticsFallbackKey = 'photo-analytics-fallback-v1';
-
-function loadFallbackAnalytics() {
-    try {
-        return normalizeStats(JSON.parse(localStorage.getItem(analyticsFallbackKey) || '{}'));
-    } catch (error) {
-        return {};
-    }
-}
-
-function saveFallbackAnalytics(data) {
-    try {
-        localStorage.setItem(analyticsFallbackKey, JSON.stringify(data));
-    } catch (error) {
-        console.warn('Fallback analytics storage unavailable.', error);
-    }
-}
 
 function normalizeStats(stats) {
     const normalized = {};
@@ -611,7 +595,7 @@ async function loadAnalytics() {
         return normalizeStats(await response.json());
     } catch (error) {
         console.warn('Analytics unavailable.', error);
-        return loadFallbackAnalytics();
+        return {};
     }
 }
 
@@ -638,16 +622,6 @@ async function postAnalyticsEvent(photoName, action) {
         return await response.json();
     } catch (error) {
         console.warn('Analytics storage unavailable.', error);
-        const stats = loadFallbackAnalytics();
-        if (!stats[photoName]) {
-            stats[photoName] = { opens: 0, saves: 0 };
-        }
-        if (action === 'open') {
-            stats[photoName].opens += 1;
-        } else if (action === 'save') {
-            stats[photoName].saves += 1;
-        }
-        saveFallbackAnalytics(stats);
         return null;
     }
 }
@@ -698,7 +672,6 @@ async function resetAnalytics() {
         }
     } catch (error) {
         console.warn('Analytics reset unavailable.', error);
-        saveFallbackAnalytics({});
     }
 
     updateAnalyticsPanel();
@@ -712,6 +685,12 @@ async function recordThumbnailSave(index) {
 
 async function recordPhotoOpen(index) {
     const photoName = imageFiles[index].split('/').pop();
+
+    if (lastTrackedOpenPhoto === photoName) {
+        return;
+    }
+
+    lastTrackedOpenPhoto = photoName;
     await postAnalyticsEvent(photoName, 'open');
     updateAnalyticsPanel();
 }
@@ -739,11 +718,11 @@ function buildGallery() {
 
 function openLightbox(index) {
     currentIndex = index;
-    recordPhotoOpen(index);
     lightboxImage.src = galleryImages[currentIndex].src;
     lightboxImage.alt = galleryImages[currentIndex].alt;
     lightbox.classList.add('open');
     document.body.style.overflow = 'hidden';
+    recordPhotoOpen(index);
 }
 
 function closeLightbox() {
@@ -755,12 +734,14 @@ function showNextImage() {
     currentIndex = (currentIndex + 1) % galleryImages.length;
     lightboxImage.src = galleryImages[currentIndex].src;
     lightboxImage.alt = galleryImages[currentIndex].alt;
+    recordPhotoOpen(currentIndex);
 }
 
 function showPreviousImage() {
     currentIndex = (currentIndex - 1 + galleryImages.length) % galleryImages.length;
     lightboxImage.src = galleryImages[currentIndex].src;
     lightboxImage.alt = galleryImages[currentIndex].alt;
+    recordPhotoOpen(currentIndex);
 }
 
 createAnalyticsPanel();
