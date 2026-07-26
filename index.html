@@ -567,7 +567,7 @@ let galleryImages = [];
 let analyticsPanel = null;
 let lastTrackedOpenPhoto = null;
 const showAnalytics = new URLSearchParams(window.location.search).get('analytics') === '1';
-const analyticsApi = `${window.location.origin}/api/analytics`;
+const analyticsApi = 'https://api.countapi.xyz/hit/jayem65/letter-photos';
 
 function normalizeStats(stats) {
     const normalized = {};
