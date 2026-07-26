@@ -565,8 +565,25 @@ const nextButton = document.querySelector('.lightbox-nav.next');
 let currentIndex = 0;
 let galleryImages = [];
 let analyticsPanel = null;
-const analyticsApi = '/api/analytics';
 const showAnalytics = new URLSearchParams(window.location.search).get('analytics') === '1';
+const analyticsApi = `${window.location.origin}/api/analytics`;
+const analyticsFallbackKey = 'photo-analytics-fallback-v1';
+
+function loadFallbackAnalytics() {
+    try {
+        return normalizeStats(JSON.parse(localStorage.getItem(analyticsFallbackKey) || '{}'));
+    } catch (error) {
+        return {};
+    }
+}
+
+function saveFallbackAnalytics(data) {
+    try {
+        localStorage.setItem(analyticsFallbackKey, JSON.stringify(data));
+    } catch (error) {
+        console.warn('Fallback analytics storage unavailable.', error);
+    }
+}
 
 function normalizeStats(stats) {
     const normalized = {};
@@ -594,8 +611,16 @@ async function loadAnalytics() {
         return normalizeStats(await response.json());
     } catch (error) {
         console.warn('Analytics unavailable.', error);
-        return {};
+        return loadFallbackAnalytics();
     }
+}
+
+function renderAnalyticsError(message) {
+    if (!analyticsPanel) {
+        return;
+    }
+
+    analyticsPanel.innerHTML = `<strong>Photo counts</strong><br>${message}`;
 }
 
 async function postAnalyticsEvent(photoName, action) {
@@ -613,6 +638,16 @@ async function postAnalyticsEvent(photoName, action) {
         return await response.json();
     } catch (error) {
         console.warn('Analytics storage unavailable.', error);
+        const stats = loadFallbackAnalytics();
+        if (!stats[photoName]) {
+            stats[photoName] = { opens: 0, saves: 0 };
+        }
+        if (action === 'open') {
+            stats[photoName].opens += 1;
+        } else if (action === 'save') {
+            stats[photoName].saves += 1;
+        }
+        saveFallbackAnalytics(stats);
         return null;
     }
 }
@@ -663,6 +698,7 @@ async function resetAnalytics() {
         }
     } catch (error) {
         console.warn('Analytics reset unavailable.', error);
+        saveFallbackAnalytics({});
     }
 
     updateAnalyticsPanel();
