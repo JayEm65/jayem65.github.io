@@ -228,9 +228,18 @@ footer {
     display: block;
 }
 
-</style>
+.analytics-panel button {
+    margin-top: 8px;
+    padding: 6px 10px;
+    font-size: 11px;
+    border: 1px solid #c7bcae;
+    background: #f4eee5;
+    cursor: pointer;
+}
 
-</head>
+.analytics-panel button:hover {
+    background: #ece3d7;
+}
 
 
 <body>
@@ -554,39 +563,78 @@ const nextButton = document.querySelector('.lightbox-nav.next');
 let currentIndex = 0;
 let galleryImages = [];
 let analyticsPanel = null;
-const analyticsKey = 'photo-analytics-v1';
+const analyticsApi = '/api/analytics';
 const showAnalytics = new URLSearchParams(window.location.search).get('analytics') === '1';
 
-function loadAnalytics() {
+function normalizeStats(stats) {
+    const normalized = {};
+
+    Object.entries(stats || {}).forEach(([name, value]) => {
+        if (typeof value === 'number') {
+            normalized[name] = { opens: value, saves: 0 };
+        } else if (value && typeof value === 'object') {
+            normalized[name] = {
+                opens: value.opens || 0,
+                saves: value.saves || 0
+            };
+        }
+    });
+
+    return normalized;
+}
+
+async function loadAnalytics() {
     try {
-        return JSON.parse(localStorage.getItem(analyticsKey) || '{}');
+        const response = await fetch(analyticsApi, { method: 'GET' });
+        if (!response.ok) {
+            throw new Error(`Analytics request failed: ${response.status}`);
+        }
+        return normalizeStats(await response.json());
     } catch (error) {
+        console.warn('Analytics unavailable.', error);
         return {};
     }
 }
 
-function saveAnalytics(data) {
+async function postAnalyticsEvent(photoName, action) {
     try {
-        localStorage.setItem(analyticsKey, JSON.stringify(data));
+        const response = await fetch(analyticsApi, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ photo: photoName, action })
+        });
+
+        if (!response.ok) {
+            throw new Error(`Analytics update failed: ${response.status}`);
+        }
+
+        return await response.json();
     } catch (error) {
         console.warn('Analytics storage unavailable.', error);
+        return null;
     }
 }
 
-function updateAnalyticsPanel() {
+async function updateAnalyticsPanel() {
     if (!analyticsPanel) {
         return;
     }
 
-    const stats = loadAnalytics();
-    const entries = Object.entries(stats).sort((a, b) => b[1] - a[1]);
+    const stats = await loadAnalytics();
+    const entries = Object.entries(stats).sort((a, b) => (b[1].opens + b[1].saves) - (a[1].opens + a[1].saves));
 
     if (!entries.length) {
-        analyticsPanel.innerHTML = '<strong>Photo counts</strong><br>No opens yet.';
+        analyticsPanel.innerHTML = '<strong>Photo counts</strong><br>No opens or saves yet.';
         return;
     }
 
-    analyticsPanel.innerHTML = '<strong>Photo counts</strong><br>' + entries.map(([name, count]) => `${name}: ${count}`).join('<br>');
+    analyticsPanel.innerHTML = '<strong>Photo counts</strong><br>' + entries.map(([name, counts]) => `${name}: opens ${counts.opens}, saves ${counts.saves}`).join('<br>');
+
+    const resetButton = document.createElement('button');
+    resetButton.type = 'button';
+    resetButton.textContent = 'Reset counts';
+    resetButton.addEventListener('click', resetAnalytics);
+    analyticsPanel.appendChild(resetButton);
 }
 
 function createAnalyticsPanel() {
@@ -600,11 +648,33 @@ function createAnalyticsPanel() {
     updateAnalyticsPanel();
 }
 
-function recordPhotoOpen(index) {
+async function resetAnalytics() {
+    try {
+        const response = await fetch(analyticsApi, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'reset' })
+        });
+
+        if (!response.ok) {
+            throw new Error(`Reset failed: ${response.status}`);
+        }
+    } catch (error) {
+        console.warn('Analytics reset unavailable.', error);
+    }
+
+    updateAnalyticsPanel();
+}
+
+async function recordThumbnailSave(index) {
     const photoName = imageFiles[index].split('/').pop();
-    const stats = loadAnalytics();
-    stats[photoName] = (stats[photoName] || 0) + 1;
-    saveAnalytics(stats);
+    await postAnalyticsEvent(photoName, 'save');
+    updateAnalyticsPanel();
+}
+
+async function recordPhotoOpen(index) {
+    const photoName = imageFiles[index].split('/').pop();
+    await postAnalyticsEvent(photoName, 'open');
     updateAnalyticsPanel();
 }
 
@@ -618,7 +688,10 @@ function buildGallery() {
         const img = document.createElement('img');
         img.src = src;
         img.alt = `Memory ${index + 1}`;
-        img.addEventListener('click', () => openLightbox(index));
+        img.addEventListener('click', () => {
+            recordThumbnailSave(index);
+            openLightbox(index);
+        });
 
         item.appendChild(img);
         gallery.appendChild(item);
