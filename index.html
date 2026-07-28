@@ -33,8 +33,20 @@ h1 {
 }
 
 .letter {
-    white-space: pre-line;
     font-size: 16px;
+    line-height: 1.6;
+    white-space: normal;
+}
+
+.letter p {
+    margin: 0 0 1.1em;
+}
+
+.letter .divider-line {
+    text-align: center;
+    margin: 2.2em 0 1.8em;
+    letter-spacing: 0.2em;
+    color: #8a7d6c;
 }
 
 .divider {
@@ -457,7 +469,19 @@ async function unlock() {
 
     if (enteredHash === encryptedLetter.passwordHash) {
         const decrypted = decryptLetter(encryptedLetter.ciphertext, entered);
-        letterContent.innerHTML = decrypted.replace(/\n/g, '<br><br>');
+        const formatted = decrypted
+            .replace(/\r/g, '')
+            .split(/\n\n+/)
+            .map((block) => block.trim())
+            .filter(Boolean)
+            .map((block) => {
+                if (block.includes('~✦~')) {
+                    return `<div class="divider-line">~✦~</div>`;
+                }
+                return `<p>${block.replace(/\n/g, ' ')}</p>`;
+            })
+            .join('');
+        letterContent.innerHTML = formatted;
         document.getElementById('error').innerHTML = '';
         document.getElementById('lockscreen').style.display = 'none';
         document.getElementById('content').style.display = 'block';
