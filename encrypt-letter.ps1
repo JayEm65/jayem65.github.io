@@ -4,7 +4,7 @@ param(
     [string]$Output = 'encrypted-letter.json'
 )
 
-$plain = Get-Content -Path $Source -Raw
+$plain = [System.IO.File]::ReadAllText((Resolve-Path $Source), [System.Text.Encoding]::UTF8)
 $passwordBytes = [System.Text.Encoding]::UTF8.GetBytes($Password)
 $dataBytes = [System.Text.Encoding]::UTF8.GetBytes($plain)
 
