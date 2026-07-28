@@ -533,13 +533,15 @@ let galleryImages = [];
 
 function buildGallery() {
     gallery.innerHTML = '';
+    galleryImages = [];
 
     imageFiles.forEach((src, index) => {
         const item = document.createElement('div');
         item.className = 'gallery-item';
 
         const img = document.createElement('img');
-        img.src = src;
+        const cacheBuster = Date.now() + index;
+        img.src = `${src}?v=${cacheBuster}`;
         img.alt = `Memory ${index + 1}`;
         img.addEventListener('click', () => {
             openLightbox(index);
